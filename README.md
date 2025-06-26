@@ -1,10 +1,18 @@
-# PQC Chat - How to Run
+# PQC E2E Chat - Post-Quantum End-to-End Encrypted Chat
 
-A post-quantum cryptography chat application using ML-KEM-512 for secure authentication and AES-256 encryption.
+Uma aplicação de chat com criptografia pós-quântica verdadeiramente **End-to-End (E2E)**, onde o servidor atua apenas como roteador e **não pode ler as mensagens** entre clientes.
 
-## Quick Setup
+## 🔐 Características
 
-### 1. Install Dependencies
+- **Criptografia Pós-Quântica**: ML-KEM-512 para troca de chaves
+- **End-to-End Real**: Servidor não consegue ler mensagens entre clientes
+- **AES-256-CBC**: Criptografia simétrica para mensagens E2E
+- **Zero Knowledge Server**: Servidor atua apenas como roteador
+- **Sessões Múltiplas**: Cada par de clientes tem sua própria chave E2E
+
+## 🚀 Configuração Rápida
+
+### 1. Instalar Dependências
 ```bash
 # macOS
 brew install liboqs
@@ -15,115 +23,238 @@ sudo apt-get install liboqs-dev
 pip install cryptography
 ```
 
-### 2. Automated Setup (Recommended)
-Run the setup script to build everything and generate keys:
+### 2. Configuração Automatizada (Recomendado)
+Execute o script de configuração para construir tudo e gerar chaves:
 ```bash
 python3 setup.py
 ```
 
-This will:
-- Build the PQC library
-- Generate server and client keys
-- Run tests to verify everything works
+Isso vai:
+- Construir a biblioteca PQC
+- Gerar chaves do servidor e clientes
+- Executar testes para verificar funcionamento
 
-### 3. Manual Setup (Alternative)
-If you prefer manual setup:
+### 3. Configuração Manual (Alternativa)
+Se preferir configuração manual:
 ```bash
-# Build the PQC library
+# Construir a biblioteca PQC
 make
 
-# Generate server keys
-python3 key_generation/key_manager.py generate-server
+# Gerar chaves do servidor E2E
+python3 key_generation/key_manager.py generate-server e2e_server
 
-# Generate client keys for users
+# Gerar chaves dos clientes
 python3 key_generation/key_manager.py generate-client alice
 python3 key_generation/key_manager.py generate-client bob
 python3 key_generation/key_manager.py generate-client charlie
 ```
 
-## Running the Chat
+## 🎯 Executando o Chat E2E
 
-### Start the Server
+### Descobrir seu IP
 ```bash
-python3 server/chat_server.py
+# Para descobrir o IP da sua máquina
+ifconfig | grep "inet " | grep -v "127.0.0.1" | awk '{print $2}' | head -1
 ```
-The server will listen on `localhost:12345` by default.
 
-### Connect Clients
-Open new terminals and run:
+### Iniciar o Servidor E2E
 ```bash
-python3 client/chat_client.py alice
-python3 client/chat_client.py bob
-python3 client/chat_client.py charlie
+# Servidor local (para testes na mesma máquina)
+python3 server/e2e_server.py --host 127.0.0.1 --port 12346
+
+# Servidor na rede (para outros dispositivos se conectarem)
+python3 server/e2e_server.py --host 0.0.0.0 --port 12346
 ```
 
-### Server Options
+### Conectar Clientes
+Abra novos terminais e execute:
+
+**Para servidor local:**
 ```bash
-# Custom host and port
-python3 server/chat_server.py --host 0.0.0.0 --port 8080
-
-# Custom server ID
-python3 server/chat_server.py --server-id my_server
-
-# Custom keys directory
-python3 server/chat_server.py --keys-dir /path/to/keys
+python3 client/e2e_client.py --name alice --server 127.0.0.1
+python3 client/e2e_client.py --name bob --server 127.0.0.1
+python3 client/e2e_client.py --name charlie --server 127.0.0.1
 ```
 
-### Client Options
+**Para servidor na rede:**
 ```bash
-# Connect to remote server
-python3 client/chat_client.py alice --server 192.168.1.100 --port 8080
-
-# Custom keys directory
-python3 client/chat_client.py alice --keys-dir /path/to/keys
+python3 client/e2e_client.py --name alice --server SEU_IP_AQUI
+python3 client/e2e_client.py --name bob --server SEU_IP_AQUI
+python3 client/e2e_client.py --name charlie --server SEU_IP_AQUI
 ```
 
-## How It Works
+### Exemplo Prático
+```bash
+# Terminal 1 - Servidor
+python3 server/e2e_server.py --host 0.0.0.0 --port 12346
 
-1. **Authentication**: Each client authenticates with the server using ML-KEM-512 post-quantum cryptography
-2. **Encryption**: All messages are encrypted with AES-256-CBC
-3. **Security**: Quantum-resistant key exchange protects against future quantum computers
+# Terminal 2 - Alice
+python3 client/e2e_client.py --name alice --server 172.20.10.9
 
-## Project Structure
-```
-├── server/chat_server.py     # Start the chat server
-├── client/chat_client.py     # Connect as a client
-├── key_generation/           # Key management tools
-├── shared/                   # Crypto utilities
-├── keys/                     # Generated keypairs (auto-created)
-└── tests/                    # Test suite
+# Terminal 3 - Bob
+python3 client/e2e_client.py --name bob --server 172.20.10.9
 ```
 
-## Commands in Chat
-- Type messages normally to chat
-- Type `exit` to disconnect
+## 💬 Como Usar o Chat E2E
 
-## Troubleshooting
+### Comandos Disponíveis
+```bash
+/help                    # Mostrar ajuda
+/list                    # Listar clientes online
+/sessions                # Mostrar sessões E2E ativas
+/key <cliente>           # Solicitar chave pública e estabelecer sessão E2E
+@<cliente> <mensagem>    # Enviar mensagem E2E criptografada
+/exit                    # Sair do chat
+```
 
-**Library not found?**
+### Fluxo de Uso
+1. **Alice e Bob se conectam** ao servidor
+2. **Alice estabelece sessão E2E com Bob:**
+   ```
+   /key bob
+   ```
+3. **Alice envia mensagem E2E para Bob:**
+   ```
+   @bob Olá! Esta mensagem é verdadeiramente E2E! 🔐
+   ```
+4. **Bob recebe e descriptografa** a mensagem automaticamente
+
+### Exemplo de Conversa
+```
+Alice:
+/key bob
+- Sessão E2E local criada com 'bob'
+
+@bob Olá Bob! Como você está?
+[14:25] - Você → bob: Olá Bob! Como você está?
+
+Bob:
+- Sessão E2E criada com 'alice'
+[14:25] - alice → Você: Olá Bob! Como você está?
+
+@alice Oi Alice! Estou bem, obrigado! 😊
+[14:26] - Você → alice: Oi Alice! Estou bem, obrigado! 😊
+```
+
+## 🏗️ Arquitetura do Sistema
+
+### Chat Tradicional vs E2E
+```
+TRADICIONAL:
+Alice → [Criptografia A-Server] → Servidor (lê tudo) → [Criptografia Server-B] → Bob
+
+E2E IMPLEMENTADO:
+Alice → [Criptografia A-B direta] → Servidor (apenas roteia) → [Criptografia A-B direta] → Bob
+```
+
+### Camadas de Segurança
+1. **Autenticação Server-Cliente**: ML-KEM-512 + AES-256
+2. **Criptografia E2E**: ML-KEM-512 + AES-256 (chave única por par de clientes)
+3. **Zero Knowledge**: Servidor não consegue descriptografar mensagens E2E
+
+## 📁 Estrutura do Projeto
+```
+├── server/
+│   ├── e2e_server.py          # Servidor E2E (apenas roteador)
+│   └── chat_server.py         # Servidor tradicional (legado)
+├── client/
+│   ├── e2e_client.py          # Cliente E2E
+│   └── chat_client.py         # Cliente tradicional (legado)
+├── shared/
+│   ├── e2e_crypto_utils.py    # Gerenciador de sessões E2E
+│   ├── pqc_crypto_utils.py    # Criptografia PQC + AES
+│   └── pqc_wrapper.py         # Interface ML-KEM
+├── key_generation/
+│   └── key_manager.py         # Gerenciamento de chaves
+├── keys/                      # Chaves geradas (auto-criado)
+│   ├── server/e2e_server/     # Chaves do servidor E2E
+│   └── clients/               # Chaves dos clientes
+└── tests/                     # Suíte de testes
+```
+
+## 🛠️ Opções Avançadas
+
+### Servidor
+```bash
+# Host e porta customizados
+python3 server/e2e_server.py --host 0.0.0.0 --port 8080
+
+# ID do servidor customizado
+python3 server/e2e_server.py --server-id meu_servidor_e2e
+
+# Diretório de chaves customizado
+python3 server/e2e_server.py --keys-dir /caminho/para/chaves
+```
+
+### Cliente
+```bash
+# Conectar a servidor remoto
+python3 client/e2e_client.py --name alice --server 192.168.1.100 --port 8080
+
+# Diretório de chaves customizado
+python3 client/e2e_client.py --name alice --keys-dir /caminho/para/chaves
+```
+
+## 🔧 Solução de Problemas
+
+**Biblioteca não encontrada?**
 ```bash
 make clean && make
 ```
 
-**Permission errors?**
+**Erro de permissão?**
 ```bash
 chmod 755 keys/
 ```
 
-**Connection issues?**
+**Problemas de conexão?**
 ```bash
-# Make sure server is running first
-python3 server/chat_server.py
+# Certifique-se que o servidor está rodando primeiro
+python3 server/e2e_server.py --host 0.0.0.0 --port 12346
 ```
 
-**Test everything works:**
+**Connection refused?**
+```bash
+# Verifique se está usando o IP correto
+ifconfig | grep "inet " | grep -v "127.0.0.1"
+```
+
+**Testar se tudo funciona:**
 ```bash
 python3 tests/test_pqc.py
 ```
 
-## Requirements
-- Python 3.7+
-- liboqs library
-- C++ compiler
+## 🧪 Teste Rápido
 
-That's it! The chat uses post-quantum cryptography to keep your messages secure. 🔐 # pac_project
+Execute este comando para testar a funcionalidade E2E:
+```bash
+# Terminal 1
+python3 server/e2e_server.py --host 127.0.0.1 --port 12346
+
+# Terminal 2
+python3 client/e2e_client.py --name alice --server 127.0.0.1
+# Digite: /key bob
+
+# Terminal 3
+python3 client/e2e_client.py --name bob --server 127.0.0.1
+# Digite: @alice Olá Alice! Esta é uma mensagem E2E!
+```
+
+## 📋 Requisitos
+
+- Python 3.7+
+- Biblioteca liboqs
+- Compilador C++
+- Sistema operacional: macOS, Linux
+
+## 🔐 Segurança
+
+Este sistema implementa criptografia **verdadeiramente End-to-End** onde:
+
+- ✅ Apenas os clientes que se comunicam podem ler as mensagens
+- ✅ O servidor **nunca** tem acesso às chaves E2E
+- ✅ Cada par de clientes tem uma chave única
+- ✅ Resistente a ataques de computadores quânticos (ML-KEM-512)
+- ✅ Zero knowledge: servidor atua apenas como roteador
+
+**Isso é E2E real!** 🛡️🔐
