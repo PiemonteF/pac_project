@@ -118,12 +118,16 @@ class PQCChatClient:
             if not self.crypto:
                 print("[ERROR] No crypto instance available for encryption")
                 return False
+            
+            print(f"\n[CLIENTE] 📤 Enviando mensagem criptografada para servidor: '{message}'")
                 
             encrypted_message = self.crypto.encrypt(message)
             # Send the length first, then the encrypted message
             message_length = len(encrypted_message.encode('utf-8'))
             self.socket.send(f"{message_length:10}".encode('utf-8'))
             self.socket.send(encrypted_message.encode('utf-8'))
+            
+            print(f"[CLIENTE] ✅ Mensagem enviada para servidor\n")
             return True
         except Exception as e:
             print(f"[ERROR] Failed to send encrypted message: {e}")
@@ -151,8 +155,13 @@ class PQCChatClient:
                     return None
                 encrypted_message += chunk
             
+            print(f"\n[CLIENTE] 📥 Recebendo mensagem criptografada do servidor")
+            
             # Decrypt the message
             decrypted_message = self.crypto.decrypt(encrypted_message)
+            
+            print(f"[CLIENTE] ✅ Mensagem descriptografada: '{decrypted_message}'\n")
+            
             return decrypted_message
         except Exception as e:
             print(f"[ERROR] Failed to receive encrypted message: {e}")
@@ -161,40 +170,46 @@ class PQCChatClient:
     def perform_authentication(self):
         """Perform ML-KEM authentication with the server."""
         try:
-            print(f"[PQC] Starting ML-KEM authentication with server")
+            print(f"\n[PQC] ═══ INICIANDO AUTENTICAÇÃO ML-KEM COM SERVIDOR ═══")
             
             # Initialize PQC key exchange
             pqc_exchange = PQCKeyExchange()
             
             # Receive server's public key
+            print(f"[PQC] 📥 Aguardando chave pública do servidor...")
             response = self.receive_unencrypted()
             if not response:
-                print("[PQC] Failed to receive server public key")
+                print("[PQC] ❌ Falha ao receber chave pública do servidor")
                 return None
             
             try:
                 server_data = json.loads(response)
                 if server_data.get("type") != "server_public_key":
-                    print("[PQC] Invalid server response type")
+                    print("[PQC] ❌ Tipo de resposta inválido do servidor")
                     return None
                 
                 server_public_key = base64.b64decode(server_data["public_key"])
                 server_id = server_data.get("server_id", "unknown")
-                print(f"[PQC] Received public key from server '{server_id}'")
+                
+                print(f"[PQC] ✅ Chave pública recebida do servidor '{server_id}'")
+                print(f"[PQC] 🔑 Tamanho: {len(server_public_key)} bytes")
+                print(f"[PQC] 🔑 Dados: {server_public_key.hex()[:32]}...{server_public_key.hex()[-8:]}")
                 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                print(f"[PQC] Failed to parse server public key: {e}")
+                print(f"[PQC] ❌ Falha ao analisar chave pública do servidor: {e}")
                 return None
             
             # Encapsulate a shared secret using server's public key
+            print(f"[PQC] 🔐 Executando ENCAPSULAMENTO...")
             ciphertext, shared_secret = pqc_exchange.encapsulate(server_public_key)
             if not ciphertext or not shared_secret:
-                print("[PQC] Failed to encapsulate shared secret")
+                print("[PQC] ❌ Falha no encapsulamento do segredo compartilhado")
                 return None
             
-            print("[PQC] Generated shared secret and ciphertext")
+            print("[PQC] ✅ Segredo compartilhado e ciphertext gerados")
             
             # Send ciphertext and client name to server
+            print(f"[PQC] 📤 Enviando ciphertext para o servidor...")
             client_message = {
                 "type": "client_ciphertext",
                 "client_name": self.client_name,
@@ -202,20 +217,25 @@ class PQCChatClient:
             }
             
             if not self.send_unencrypted(json.dumps(client_message)):
-                print("[PQC] Failed to send ciphertext to server")
+                print("[PQC] ❌ Falha ao enviar ciphertext para o servidor")
                 return None
             
-            print("[PQC] Successfully completed authentication with server")
+            print("[PQC] ✅ Ciphertext enviado com sucesso")
             
             # Derive AES key from shared secret
+            print(f"[PQC] 🔄 Derivando chave AES...")
             aes_key = pqc_exchange.pqc.derive_aes_key(shared_secret)
+            
+            print(f"[PQC] ✅ AUTENTICAÇÃO CONCLUÍDA COM SUCESSO!")
+            print(f"[PQC] 🤝 Segredo compartilhado estabelecido!")
+            print(f"[PQC] ═══ FIM DA AUTENTICAÇÃO ═══\n")
             
             # Create crypto instance with the derived AES key
             crypto = PQCAESCrypto(aes_key)
             return crypto
             
         except Exception as e:
-            print(f"[PQC] Authentication failed: {e}")
+            print(f"[PQC] ❌ Falha na autenticação: {e}")
             import traceback
             traceback.print_exc()
             return None

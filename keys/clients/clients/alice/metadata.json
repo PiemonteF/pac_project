@@ -1,0 +1,7 @@
+{
+  "client_name": "alice",
+  "algorithm": "ML-KEM-512",
+  "public_key_length": 800,
+  "secret_key_length": 1632,
+  "created_at": "2025-06-26T07:37:47.084917"
+}

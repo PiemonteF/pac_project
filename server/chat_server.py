@@ -121,12 +121,17 @@ class PQCChatServer:
             if not crypto:
                 print(f"[ERROR] No crypto instance for client")
                 return False
+            
+            client_name = self.client_names.get(client_socket, "Cliente Desconhecido")
+            print(f"\n[SERVIDOR] 📤 Enviando mensagem criptografada para '{client_name}': '{message}'")
                 
             encrypted_message = crypto.encrypt(message)
             # Send the length first, then the encrypted message
             message_length = len(encrypted_message.encode('utf-8'))
             client_socket.send(f"{message_length:10}".encode('utf-8'))
             client_socket.send(encrypted_message.encode('utf-8'))
+            
+            print(f"[SERVIDOR] ✅ Mensagem enviada para '{client_name}'\n")
             return True
         except Exception as e:
             print(f"[ERROR] Failed to send encrypted message: {e}")
@@ -155,8 +160,14 @@ class PQCChatServer:
             if not crypto:
                 print(f"[ERROR] No crypto instance for client")
                 return None
+            
+            client_name = self.client_names.get(client_socket, "Cliente Desconhecido")
+            print(f"\n[SERVIDOR] 📥 Recebendo mensagem criptografada de '{client_name}'")
                 
             decrypted_message = crypto.decrypt(encrypted_message)
+            
+            print(f"[SERVIDOR] ✅ Mensagem descriptografada de '{client_name}': '{decrypted_message}'\n")
+            
             return decrypted_message
         except Exception as e:
             print(f"[ERROR] Failed to receive encrypted message: {e}")
@@ -165,10 +176,13 @@ class PQCChatServer:
     def perform_key_exchange(self, client_socket, client_address):
         """Perform ML-KEM key exchange with the client."""
         try:
-            print(f"[PQC] Starting ML-KEM authentication with {client_address}")
+            print(f"\n[PQC] ═══ INICIANDO TROCA DE CHAVES ML-KEM com {client_address} ═══")
             
             # Initialize PQC key exchange
             pqc_exchange = PQCKeyExchange()
+            
+            print(f"[PQC] 📤 Enviando chave pública do servidor para {client_address}")
+            print(f"[PQC] 🔑 Chave pública do servidor ({len(self.server_public_key)} bytes): {self.server_public_key.hex()[:32]}...{self.server_public_key.hex()[-8:]}")
             
             # Send server public key to client (base64 encoded for transmission)
             key_message = {
@@ -178,49 +192,56 @@ class PQCChatServer:
             }
             
             if not self.send_unencrypted(client_socket, json.dumps(key_message)):
-                print(f"[PQC] Failed to send server public key to {client_address}")
+                print(f"[PQC] ❌ Falha ao enviar chave pública para {client_address}")
                 return None
             
-            print(f"[PQC] Sent server public key to {client_address}")
+            print(f"[PQC] ✅ Chave pública enviada para {client_address}")
             
             # Receive client's encapsulated secret
+            print(f"[PQC] 📥 Aguardando ciphertext do cliente {client_address}...")
             response = self.receive_unencrypted(client_socket)
             if not response:
-                print(f"[PQC] Failed to receive client response from {client_address}")
+                print(f"[PQC] ❌ Falha ao receber resposta do cliente {client_address}")
                 return None
             
             try:
                 client_data = json.loads(response)
                 if client_data.get("type") != "client_ciphertext":
-                    print(f"[PQC] Invalid response type from {client_address}")
+                    print(f"[PQC] ❌ Tipo de resposta inválido de {client_address}")
                     return None
                 
                 client_ciphertext = base64.b64decode(client_data["ciphertext"])
-                client_name = client_data.get("client_name", f"Client@{client_address[0]}")
+                client_name = client_data.get("client_name", f"Cliente@{client_address[0]}")
                 
-                print(f"[PQC] Received encapsulated secret from client '{client_name}' at {client_address}")
+                print(f"[PQC] 📦 Ciphertext recebido do cliente '{client_name}':")
+                print(f"[PQC] 📦 Tamanho: {len(client_ciphertext)} bytes")
+                print(f"[PQC] 📦 Dados: {client_ciphertext.hex()[:32]}...{client_ciphertext.hex()[-8:]}")
                 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                print(f"[PQC] Failed to parse client response from {client_address}: {e}")
+                print(f"[PQC] ❌ Falha ao analisar resposta do cliente {client_address}: {e}")
                 return None
             
             # Decapsulate the shared secret using server's secret key
+            print(f"[PQC] 🔓 Executando DESENCAPSULAMENTO...")
             shared_secret = pqc_exchange.decapsulate(self.server_secret_key, client_ciphertext)
             if not shared_secret:
-                print(f"[PQC] Failed to decapsulate shared secret from {client_address}")
+                print(f"[PQC] ❌ Falha no desencapsulamento com {client_address}")
                 return None
             
             # Derive AES key from shared secret
+            print(f"[PQC] 🔄 Derivando chave AES...")
             aes_key = pqc_exchange.pqc.derive_aes_key(shared_secret)
             
-            print(f"[PQC] Successfully established shared secret with '{client_name}' at {client_address}")
+            print(f"[PQC] ✅ TROCA DE CHAVES CONCLUÍDA com '{client_name}' em {client_address}")
+            print(f"[PQC] 🤝 Segredo compartilhado estabelecido com sucesso!")
+            print(f"[PQC] ═══ FIM DA TROCA DE CHAVES ═══\n")
             
             # Create crypto instance with the derived AES key
             crypto = PQCAESCrypto(aes_key)
             return crypto, client_name
             
         except Exception as e:
-            print(f"[PQC] Key exchange failed with {client_address}: {e}")
+            print(f"[PQC] ❌ Falha na troca de chaves com {client_address}: {e}")
             import traceback
             traceback.print_exc()
             return None

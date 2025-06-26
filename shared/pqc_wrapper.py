@@ -187,7 +187,14 @@ class PQCWrapper:
     
     def derive_aes_key(self, shared_secret):
         """Derive a 32-byte AES key from the shared secret using SHA-256."""
-        return hashlib.sha256(shared_secret).digest()
+        print(f"[AES-DERIVE] 🔄 Derivando chave AES a partir do segredo compartilhado")
+        print(f"[AES-DERIVE] 📊 Segredo compartilhado (32 bytes): {shared_secret.hex()}")
+        
+        aes_key = hashlib.sha256(shared_secret).digest()
+        
+        print(f"[AES-DERIVE] ✅ Chave AES-256 derivada com SHA-256 (32 bytes): {aes_key.hex()}")
+        
+        return aes_key
     
     def __del__(self):
         """Cleanup when the object is destroyed."""
