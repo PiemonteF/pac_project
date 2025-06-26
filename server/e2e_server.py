@@ -48,9 +48,10 @@ class E2EChatServer:
         # Load or generate server keypair
         self._initialize_server_keys()
         
-        print(f"[E2E-SERVER] 🔐 E2E Chat Server iniciado com ID: {server_id}")
-        print(f"[E2E-SERVER] ⚠️  SERVIDOR NÃO PODE LER MENSAGENS E2E!")
-        print(f"[E2E-SERVER] 🛡️  Apenas roteia dados criptografados entre clientes")
+        print("=" * 50)
+        print(f"🔐 E2E Chat Server iniciado - ID: {server_id}")
+        print(f"🛡️  SERVIDOR = ROTEADOR (não lê mensagens E2E)")
+        print("=" * 50)
     
     def _initialize_server_keys(self):
         """Load or generate server keypair for client authentication."""
@@ -62,7 +63,7 @@ class E2EChatServer:
                 if self.key_manager.verify_keypair(public_key, secret_key):
                     self.server_public_key = public_key
                     self.server_secret_key = secret_key
-                    print(f"[E2E-SERVER] ✅ Chaves do servidor carregadas")
+                    print(f"✅ Chaves ML-KEM do servidor carregadas")
                 else:
                     self._generate_server_keys()
             else:
@@ -168,7 +169,9 @@ class E2EChatServer:
     def perform_key_exchange(self, client_socket, client_address):
         """Perform ML-KEM key exchange with client for server-client communication."""
         try:
-            print(f"\n[E2E-SERVER] 🔐 Autenticação servidor-cliente com {client_address}")
+            print("\n" + "=" * 40)
+            print(f"🔐 NOVA CONEXÃO: {client_address[0]}")
+            print("=" * 40)
             
             pqc_exchange = PQCKeyExchange()
             
@@ -199,7 +202,7 @@ class E2EChatServer:
                 if "client_public_key" in client_data:
                     client_public_key = base64.b64decode(client_data["client_public_key"])
                     self.client_public_keys[client_name] = client_public_key
-                    print(f"[E2E-SERVER] 📋 Chave pública E2E registrada para '{client_name}'")
+                    print(f"📋 Chave pública E2E registrada: '{client_name}'")
                 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
                 print(f"[E2E-SERVER] ❌ Erro ao analisar resposta: {e}")
@@ -213,7 +216,8 @@ class E2EChatServer:
             # Derive AES key for server-client communication
             aes_key = pqc_exchange.pqc.derive_aes_key(shared_secret)
             
-            print(f"[E2E-SERVER] ✅ Cliente '{client_name}' autenticado")
+            print(f"✅ ML-KEM ESTABELECIDO: '{client_name}' autenticado")
+            print("-" * 40)
             
             crypto = PQCAESCrypto(aes_key)
             return crypto, client_name
@@ -229,8 +233,15 @@ class E2EChatServer:
             sender_client = message_data.get("from")
             message_type = message_data.get("type")
             
-            print(f"[E2E-ROUTER] 📮 Roteando '{message_type}': {sender_client} → {target_client}")
-            print(f"[E2E-ROUTER] 🛡️  SERVIDOR NÃO PODE LER O CONTEÚDO!")
+            if message_type == "e2e_encrypted_message":
+                encrypted_data = message_data.get("encrypted_data", "")
+                print("\n" + "-" * 50)
+                print(f"📮 MENSAGEM E2E: {sender_client} → {target_client}")
+                print(f"🔒 Dados criptografados: {encrypted_data[:32]}...")
+                print("🛡️  SERVIDOR NÃO PODE LER O CONTEÚDO!")
+                print("-" * 50)
+            else:
+                print(f"\n📮 ROTEANDO: {sender_client} → {target_client} ({message_type})")
             
             # Find target client socket
             target_socket = None
@@ -242,13 +253,13 @@ class E2EChatServer:
             if target_socket:
                 # Forward the E2E message via encrypted server channel
                 if self.send_encrypted(target_socket, json.dumps(message_data)):
-                    print(f"[E2E-ROUTER] ✅ Mensagem roteada para '{target_client}'")
+                    print(f"✅ Mensagem roteada para '{target_client}'")
                     return True
                 else:
-                    print(f"[E2E-ROUTER] ❌ Falha ao rotear para '{target_client}'")
+                    print(f"❌ Falha ao rotear para '{target_client}'")
                     return False
             else:
-                print(f"[E2E-ROUTER] ❌ Cliente '{target_client}' não encontrado")
+                print(f"❌ Cliente '{target_client}' não encontrado")
                 # Send error back to sender
                 error_msg = {
                     "type": "routing_error",
@@ -276,7 +287,9 @@ class E2EChatServer:
         target_client = request_data.get("to")
         requester_client = request_data.get("from")
         
-        print(f"[E2E-SERVER] 🔑 Solicitação de chave pública: '{requester_client}' → '{target_client}'")
+        print("\n" + "=" * 45)
+        print(f"🔑 SESSÃO E2E INICIADA: '{requester_client}' ↔ '{target_client}'")
+        print("=" * 45)
         
         if target_client in self.client_public_keys:
             # Send public key to requester
@@ -288,18 +301,18 @@ class E2EChatServer:
             }
             
             self.send_encrypted(requester_socket, json.dumps(response))
-            print(f"[E2E-SERVER] ✅ Chave pública de '{target_client}' enviada para '{requester_client}'")
+            print(f"✅ Chave pública enviada: '{target_client}' → '{requester_client}'")
         else:
             error_msg = {
                 "type": "key_error",
                 "message": f"Chave pública de '{target_client}' não disponível"
             }
             self.send_encrypted(requester_socket, json.dumps(error_msg))
-            print(f"[E2E-SERVER] ❌ Chave pública de '{target_client}' não encontrada")
+            print(f"❌ Chave pública de '{target_client}' não encontrada")
 
     def handle_client(self, client_socket, client_address):
         """Handle a single client connection."""
-        print(f"[E2E-SERVER] 🔌 Nova conexão: {client_address}")
+        print(f"🔌 Nova conexão: {client_address[0]}")
         
         try:
             self.clients.append(client_socket)
@@ -312,7 +325,7 @@ class E2EChatServer:
                 self.client_crypto[client_socket] = crypto
                 self.client_names[client_socket] = client_name
                 
-                print(f"[E2E-SERVER] ✅ '{client_name}' conectado e autenticado")
+                print(f"✅ '{client_name}' conectado e autenticado")
                 
                 # Send welcome message
                 welcome_msg = {
@@ -339,7 +352,7 @@ class E2EChatServer:
                             message_type = message_data.get("type", "")
                             
                             if message_type == "exit":
-                                print(f"[E2E-SERVER] 👋 '{client_name}' solicitou saída")
+                                print(f"👋 '{client_name}' desconectou")
                                 self.remove_client(client_socket)
                                 break
                             elif E2EMessageWrapper.is_e2e_message(message_data):
@@ -409,11 +422,10 @@ class E2EChatServer:
             server_socket.bind((self.host, self.port))
             server_socket.listen(5)
             
-            print(f"\n[E2E-SERVER] - Servidor E2E rodando em {self.host}:{self.port}")
-            print(f"[E2E-SERVER] - Criptografia End-to-End REAL ativada")
-            print(f"[E2E-SERVER] -  Servidor NÃO pode ler mensagens entre clientes")
-            print(f"[E2E-SERVER] - Atuando apenas como roteador seguro")
-            print(f"[E2E-SERVER] - Pronto para conexões!\n")
+            print(f"\n🚀 Servidor E2E rodando em {self.host}:{self.port}")
+            print(f"✅ Pronto para conexões!")
+            print("=" * 50)
+            print("")
 
             while True:
                 client_socket, client_address = server_socket.accept()

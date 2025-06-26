@@ -47,11 +47,11 @@ class PQCAESCrypto:
         if not self.aes_key:
             raise RuntimeError("No AES key available for encryption")
         
-        print(f"[CRYPTO] 📝 Texto original: '{plaintext}'")
+        # print(f"[CRYPTO] 📝 Texto original: '{plaintext}'")
         
         # Generate a random 16-byte IV for each message
         iv = os.urandom(16)
-        print(f"[CRYPTO] 🎲 IV gerado (16 bytes): {iv.hex()}")
+        # print(f"[CRYPTO] 🎲 IV gerado (16 bytes): {iv.hex()}")
         
         # Create cipher
         cipher = Cipher(algorithms.AES(self.aes_key), modes.CBC(iv), backend=self.backend)
@@ -61,16 +61,16 @@ class PQCAESCrypto:
         padder = padding.PKCS7(128).padder()
         padded_data = padder.update(plaintext.encode('utf-8'))
         padded_data += padder.finalize()
-        print(f"[CRYPTO] 📏 Dados com padding PKCS7: {len(padded_data)} bytes")
+        # print(f"[CRYPTO] 📏 Dados com padding PKCS7: {len(padded_data)} bytes")
         
         # Encrypt the data
         encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-        print(f"[CRYPTO] 🔒 Dados criptografados: {len(encrypted_data)} bytes")
+        # print(f"[CRYPTO] 🔒 Dados criptografados: {len(encrypted_data)} bytes")
         
         # Combine IV and encrypted data, then base64 encode
         combined = iv + encrypted_data
         result = base64.b64encode(combined).decode('utf-8')
-        print(f"[CRYPTO] ✅ Mensagem criptografada (base64): {result[:32]}...{result[-8:]}")
+        # print(f"[CRYPTO] ✅ Mensagem criptografada (base64): {result[:32]}...{result[-8:]}")
         
         return result
     
@@ -82,18 +82,18 @@ class PQCAESCrypto:
         if not self.aes_key:
             raise RuntimeError("No AES key available for decryption")
         
-        print(f"[CRYPTO] 🔓 Descriptografando: {encrypted_data[:32]}...{encrypted_data[-8:]}")
+        # print(f"[CRYPTO] 🔓 Descriptografando: {encrypted_data[:32]}...{encrypted_data[-8:]}")
         
         try:
             # Decode from base64
             combined = base64.b64decode(encrypted_data.encode('utf-8'))
-            print(f"[CRYPTO] 📦 Dados decodificados: {len(combined)} bytes")
+            # print(f"[CRYPTO] 📦 Dados decodificados: {len(combined)} bytes")
             
             # Extract IV (first 16 bytes) and encrypted data
             iv = combined[:16]
             encrypted_bytes = combined[16:]
-            print(f"[CRYPTO] 🎲 IV extraído: {iv.hex()}")
-            print(f"[CRYPTO] 🔒 Dados criptografados: {len(encrypted_bytes)} bytes")
+            # print(f"[CRYPTO] 🎲 IV extraído: {iv.hex()}")
+            # print(f"[CRYPTO] 🔒 Dados criptografados: {len(encrypted_bytes)} bytes")
             
             # Create cipher
             cipher = Cipher(algorithms.AES(self.aes_key), modes.CBC(iv), backend=self.backend)
@@ -108,7 +108,7 @@ class PQCAESCrypto:
             plaintext_bytes += unpadder.finalize()
             
             result = plaintext_bytes.decode('utf-8')
-            print(f"[CRYPTO] ✅ Texto descriptografado: '{result}'")
+            # print(f"[CRYPTO] ✅ Texto descriptografado: '{result}'")
             
             return result
         
@@ -126,9 +126,9 @@ class PQCKeyExchange:
         try:
             self.pqc = get_pqc_instance()
             self.lengths = self.pqc.get_lengths()
-            print(f"[PQC] 🔧 ML-KEM-512 inicializado com sucesso")
-            print(f"[PQC] 📏 Tamanhos: chave_publica={self.lengths['public_key']}, chave_secreta={self.lengths['secret_key']}")
-            print(f"[PQC] 📏 Tamanhos: ciphertext={self.lengths['ciphertext']}, segredo_compartilhado={self.lengths['shared_secret']}")
+            # print(f"[PQC] 🔧 ML-KEM-512 inicializado com sucesso")
+            # print(f"[PQC] 📏 Tamanhos: chave_publica={self.lengths['public_key']}, chave_secreta={self.lengths['secret_key']}")
+            # print(f"[PQC] 📏 Tamanhos: ciphertext={self.lengths['ciphertext']}, segredo_compartilhado={self.lengths['shared_secret']}")
         except Exception as e:
             print(f"[PQC] ❌ Falha na inicialização: {e}")
             raise
@@ -151,14 +151,14 @@ class PQCKeyExchange:
         Returns ciphertext (raw bytes) and shared_secret (raw bytes).
         """
         try:
-            print(f"[ML-KEM] 🔐 ENCAPSULAMENTO iniciado")
-            print(f"[ML-KEM] 🔑 Usando chave pública: {len(public_key)} bytes - {public_key.hex()[:32]}...{public_key.hex()[-8:]}")
+            # print(f"[ML-KEM] 🔐 ENCAPSULAMENTO iniciado")
+            # print(f"[ML-KEM] 🔑 Usando chave pública: {len(public_key)} bytes - {public_key.hex()[:32]}...{public_key.hex()[-8:]}")
             
             ciphertext, shared_secret = self.pqc.encapsulate(public_key)
             
-            print(f"[ML-KEM] ✅ ENCAPSULAMENTO concluído com sucesso!")
-            print(f"[ML-KEM] 📦 Ciphertext gerado: {len(ciphertext)} bytes - {ciphertext.hex()[:32]}...{ciphertext.hex()[-8:]}")
-            print(f"[ML-KEM] 🤝 Segredo compartilhado: {len(shared_secret)} bytes - {shared_secret.hex()}")
+            # print(f"[ML-KEM] ✅ ENCAPSULAMENTO concluído com sucesso!")
+            # print(f"[ML-KEM] 📦 Ciphertext gerado: {len(ciphertext)} bytes - {ciphertext.hex()[:32]}...{ciphertext.hex()[-8:]}")
+            # print(f"[ML-KEM] 🤝 Segredo compartilhado: {len(shared_secret)} bytes - {shared_secret.hex()}")
             
             return ciphertext, shared_secret
         except Exception as e:
@@ -171,14 +171,14 @@ class PQCKeyExchange:
         Returns shared_secret (raw bytes).
         """
         try:
-            print(f"[ML-KEM] 🔓 DESENCAPSULAMENTO iniciado")
-            print(f"[ML-KEM] 🔑 Usando chave secreta: {len(secret_key)} bytes - {secret_key.hex()[:32]}...{secret_key.hex()[-8:]}")
-            print(f"[ML-KEM] 📦 Desencapsulando ciphertext: {len(ciphertext)} bytes - {ciphertext.hex()[:32]}...{ciphertext.hex()[-8:]}")
+            # print(f"[ML-KEM] 🔓 DESENCAPSULAMENTO iniciado")
+            # print(f"[ML-KEM] 🔑 Usando chave secreta: {len(secret_key)} bytes - {secret_key.hex()[:32]}...{secret_key.hex()[-8:]}")
+            # print(f"[ML-KEM] 📦 Desencapsulando ciphertext: {len(ciphertext)} bytes - {ciphertext.hex()[:32]}...{ciphertext.hex()[-8:]}")
             
             shared_secret = self.pqc.decapsulate(secret_key, ciphertext)
             
-            print(f"[ML-KEM] ✅ DESENCAPSULAMENTO concluído com sucesso!")
-            print(f"[ML-KEM] 🤝 Segredo recuperado: {len(shared_secret)} bytes - {shared_secret.hex()}")
+            # print(f"[ML-KEM] ✅ DESENCAPSULAMENTO concluído com sucesso!")
+            # print(f"[ML-KEM] 🤝 Segredo recuperado: {len(shared_secret)} bytes - {shared_secret.hex()}")
             
             return shared_secret
         except Exception as e:

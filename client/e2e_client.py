@@ -52,8 +52,9 @@ class E2EChatClient:
         # Load or generate client keypair
         self._initialize_client_keys()
         
-        print(f"[E2E-CLIENT] 🔐 Cliente E2E '{client_name}' inicializado")
-        print(f"[E2E-CLIENT] 🛡️  Criptografia verdadeiramente ponta a ponta ativada")
+        print("=" * 50)
+        print(f"🔐 Cliente E2E inicializado: '{client_name}'")
+        print("=" * 50)
     
     def _initialize_client_keys(self):
         """Load or generate client keypair."""
@@ -65,7 +66,7 @@ class E2EChatClient:
                 if self.key_manager.verify_keypair(public_key, secret_key):
                     self.public_key = public_key
                     self.secret_key = secret_key
-                    print(f"[E2E-CLIENT] ✅ Chaves carregadas para '{self.client_name}'")
+                    print(f"✅ Chaves ML-KEM carregadas")
                 else:
                     self._generate_client_keys()
             else:
@@ -169,7 +170,9 @@ class E2EChatClient:
     def perform_key_exchange(self):
         """Perform ML-KEM key exchange with server for authentication."""
         try:
-            print(f"[E2E-CLIENT] 🔐 Autenticação com servidor...")
+            print("\n" + "=" * 40)
+            print(f"🔐 Conectando ao servidor...")
+            print("=" * 40)
             
             # Receive server public key
             key_message = self.receive_unencrypted()
@@ -192,9 +195,8 @@ class E2EChatClient:
             if not shared_secret or not ciphertext:
                 return False
             
-            print(f"[E2E-CLIENT] - ML-KEM Encapsulação:")
-            print(f"[E2E-CLIENT] - Shared Secret: {shared_secret[:8].hex()}...")
-            print(f"[E2E-CLIENT] - Ciphertext: {ciphertext[:8].hex()}...")
+            print(f"✅ ML-KEM estabelecido com servidor")
+            print("-" * 40)
             
             # Derive AES key for server communication
             aes_key = self.pqc_exchange.pqc.derive_aes_key(shared_secret)
@@ -232,7 +234,9 @@ class E2EChatClient:
             }
             
             self.send_encrypted(json.dumps(request))
-            print(f"[E2E-CLIENT] - Solicitando chave pública de '{target_client}'...")
+            print("\n" + "=" * 45)
+            print(f"🔑 Iniciando sessão E2E com '{target_client}'...")
+            print("=" * 45)
             return True
             
         except Exception as e:
@@ -268,8 +272,8 @@ class E2EChatClient:
             session_key = self.session_manager._get_session_key(self.client_name, target_client)
             self.session_manager.sessions[session_key] = session
             
-            print(f"[E2E-CLIENT] - Sessão E2E local criada com '{target_client}'")
-            print(f"[E2E-CLIENT] - Chave E2E: {aes_key[:8].hex()}...")
+            print(f"✅ SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {target_client}")
+            print("-" * 45)
             
             # Send key exchange to target client so they can create their session
             key_exchange_msg = E2EMessageWrapper.create_key_exchange_request(
@@ -318,8 +322,9 @@ class E2EChatClient:
                 self.send_encrypted(json.dumps(e2e_message))
                 
                 timestamp = datetime.now().strftime("%H:%M:%S")
-                print(f"[{timestamp}] - Você → {target_client}: {message}")
-                print(f"[E2E-CLIENT] -  Mensagem criptografada E2E enviada")
+                print("\n" + "-" * 50)
+                print(f"[{timestamp}] 📤 {self.client_name} → {target_client}: {message}")
+                print("-" * 50)
                 return True
             else:
                 print(f"[E2E-CLIENT] - Falha ao criptografar mensagem")
@@ -371,8 +376,8 @@ class E2EChatClient:
                     session_key = self.session_manager._get_session_key(self.client_name, sender)
                     self.session_manager.sessions[session_key] = session
                     
-                    print(f"[E2E-CLIENT] - Sessão E2E criada com '{sender}'")
-                    print(f"[E2E-CLIENT] - Chave E2E: {aes_key[:8].hex()}...")
+                    print(f"✅ SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {sender}")
+                    print("-" * 45)
                 else:
                     print(f"[E2E-CLIENT] - Falha ao desencapsular chave de '{sender}'")
                 
@@ -390,10 +395,11 @@ class E2EChatClient:
                 
                 if decrypted_message:
                     timestamp = datetime.now().strftime("%H:%M:%S")
-                    print(f"[{timestamp}] - {sender} → Você: {decrypted_message}")
-                    print(f"[E2E-CLIENT] -  Mensagem E2E descriptografada")
+                    print("\n" + "-" * 50)
+                    print(f"[{timestamp}] 📥 {sender} → {self.client_name}: {decrypted_message}")
+                    print("-" * 50)
                 else:
-                    print(f"[E2E-CLIENT] - Falha ao descriptografar mensagem de '{sender}'")
+                    print(f"❌ Falha ao descriptografar mensagem de '{sender}'")
                     
             elif message_data.get("type") == "key_error":
                 print(f"[E2E-CLIENT] - {message_data.get('message', 'Erro de chave')}")
@@ -414,7 +420,9 @@ class E2EChatClient:
                 
             elif message_type == "client_list":
                 self.online_clients = message_data.get("clients", [])
-                print(f"\n[E2E-CLIENT] - Clientes online: {', '.join(self.online_clients)}")
+                print("\n" + "=" * 30)
+                print(f"📋 Clientes online: {', '.join(self.online_clients)}")
+                print("=" * 30)
                 
         except Exception as e:
             print(f"[E2E-CLIENT] - Erro ao processar mensagem do servidor: {e}")
@@ -436,7 +444,7 @@ class E2EChatClient:
                     except json.JSONDecodeError:
                         print(f"[E2E-CLIENT] - Mensagem JSON inválida recebida")
                 else:
-                    print(f"[E2E-CLIENT] 🔌 Conexão perdida")
+                    print(f"🔌 Conexão perdida")
                     self.connected = False
                     break
                     
@@ -577,7 +585,7 @@ class E2EChatClient:
             self.running = False
             
         else:
-            print(f"- Comando desconhecido: {command}")
+            print(f"❌ Comando desconhecido: {command}")
 
 def main():
     """Main function to start the E2E client."""
