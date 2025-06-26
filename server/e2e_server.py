@@ -49,8 +49,8 @@ class E2EChatServer:
         self._initialize_server_keys()
         
         print("=" * 50)
-        print(f"🔐 E2E Chat Server iniciado - ID: {server_id}")
-        print(f"🛡️  SERVIDOR = ROTEADOR (não lê mensagens E2E)")
+        print(f"E2E Chat Server iniciado - ID: {server_id}")
+        print(f"SERVIDOR = ROTEADOR (não lê mensagens E2E)")
         print("=" * 50)
     
     def _initialize_server_keys(self):
@@ -63,14 +63,14 @@ class E2EChatServer:
                 if self.key_manager.verify_keypair(public_key, secret_key):
                     self.server_public_key = public_key
                     self.server_secret_key = secret_key
-                    print(f"✅ Chaves ML-KEM do servidor carregadas")
+                    print(f"Chaves ML-KEM do servidor carregadas")
                 else:
                     self._generate_server_keys()
             else:
                 self._generate_server_keys()
                 
         except Exception as e:
-            print(f"[E2E-SERVER] ❌ Erro ao inicializar chaves: {e}")
+            print(f"[E2E-SERVER] Erro ao inicializar chaves: {e}")
             raise
     
     def _generate_server_keys(self):
@@ -81,12 +81,12 @@ class E2EChatServer:
             if self.key_manager.verify_keypair(public_key, secret_key):
                 self.server_public_key = public_key
                 self.server_secret_key = secret_key
-                print(f"[E2E-SERVER] ✅ Novas chaves do servidor geradas")
+                print(f"[E2E-SERVER] Novas chaves do servidor geradas")
             else:
                 raise RuntimeError("Generated keypair failed verification")
                 
         except Exception as e:
-            print(f"[E2E-SERVER] ❌ Falha ao gerar chaves: {e}")
+            print(f"[E2E-SERVER] Falha ao gerar chaves: {e}")
             raise
 
     def send_unencrypted(self, client_socket, message):
@@ -205,7 +205,7 @@ class E2EChatServer:
                     print(f"📋 Chave pública E2E registrada: '{client_name}'")
                 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                print(f"[E2E-SERVER] ❌ Erro ao analisar resposta: {e}")
+                print(f"[E2E-SERVER] Erro ao analisar resposta: {e}")
                 return None
             
             # Decapsulate shared secret
@@ -216,14 +216,14 @@ class E2EChatServer:
             # Derive AES key for server-client communication
             aes_key = pqc_exchange.pqc.derive_aes_key(shared_secret)
             
-            print(f"✅ ML-KEM ESTABELECIDO: '{client_name}' autenticado")
+            print(f"ML-KEM ESTABELECIDO: '{client_name}' autenticado")
             print("-" * 40)
             
             crypto = PQCAESCrypto(aes_key)
             return crypto, client_name
             
         except Exception as e:
-            print(f"[E2E-SERVER] ❌ Falha na autenticação: {e}")
+            print(f"[E2E-SERVER] Falha na autenticação: {e}")
             return None
 
     def route_e2e_message(self, message_data, sender_socket):
@@ -236,12 +236,11 @@ class E2EChatServer:
             if message_type == "e2e_encrypted_message":
                 encrypted_data = message_data.get("encrypted_data", "")
                 print("\n" + "-" * 50)
-                print(f"📮 MENSAGEM E2E: {sender_client} → {target_client}")
-                print(f"🔒 Dados criptografados: {encrypted_data[:32]}...")
-                print("🛡️  SERVIDOR NÃO PODE LER O CONTEÚDO!")
+                print(f"- MENSAGEM E2E: {sender_client} → {target_client}")
+                print(f"- Dados criptografados: {encrypted_data[:32]}...")
                 print("-" * 50)
             else:
-                print(f"\n📮 ROTEANDO: {sender_client} → {target_client} ({message_type})")
+                print(f"\n - ROTEANDO: {sender_client} → {target_client} ({message_type})")
             
             # Find target client socket
             target_socket = None
@@ -251,16 +250,14 @@ class E2EChatServer:
                     break
             
             if target_socket:
-                # Forward the E2E message via encrypted server channel
                 if self.send_encrypted(target_socket, json.dumps(message_data)):
-                    print(f"✅ Mensagem roteada para '{target_client}'")
+                    print(f" Mensagem roteada para '{target_client}'")
                     return True
                 else:
-                    print(f"❌ Falha ao rotear para '{target_client}'")
+                    print(f"- Falha ao rotear para '{target_client}'")
                     return False
             else:
-                print(f"❌ Cliente '{target_client}' não encontrado")
-                # Send error back to sender
+                print(f"- Cliente '{target_client}' não encontrado")
                 error_msg = {
                     "type": "routing_error",
                     "message": f"Cliente '{target_client}' não está online"
@@ -269,7 +266,7 @@ class E2EChatServer:
                 return False
                 
         except Exception as e:
-            print(f"[E2E-ROUTER] ❌ Erro no roteamento: {e}")
+            print(f"[E2E-ROUTER] - Erro no roteamento: {e}")
             return False
 
     def broadcast_client_list(self):
@@ -288,7 +285,7 @@ class E2EChatServer:
         requester_client = request_data.get("from")
         
         print("\n" + "=" * 45)
-        print(f"🔑 SESSÃO E2E INICIADA: '{requester_client}' ↔ '{target_client}'")
+        print(f"- SESSÃO E2E INICIADA: '{requester_client}' ↔ '{target_client}'")
         print("=" * 45)
         
         if target_client in self.client_public_keys:
@@ -301,14 +298,14 @@ class E2EChatServer:
             }
             
             self.send_encrypted(requester_socket, json.dumps(response))
-            print(f"✅ Chave pública enviada: '{target_client}' → '{requester_client}'")
+            print(f"- Chave pública enviada: '{target_client}' → '{requester_client}'")
         else:
             error_msg = {
                 "type": "key_error",
                 "message": f"Chave pública de '{target_client}' não disponível"
             }
             self.send_encrypted(requester_socket, json.dumps(error_msg))
-            print(f"❌ Chave pública de '{target_client}' não encontrada")
+            print(f"- Chave pública de '{target_client}' não encontrada")
 
     def handle_client(self, client_socket, client_address):
         """Handle a single client connection."""
@@ -325,7 +322,7 @@ class E2EChatServer:
                 self.client_crypto[client_socket] = crypto
                 self.client_names[client_socket] = client_name
                 
-                print(f"✅ '{client_name}' conectado e autenticado")
+                print(f"- '{client_name}' conectado e autenticado")
                 
                 # Send welcome message
                 welcome_msg = {
@@ -334,11 +331,10 @@ class E2EChatServer:
                 }
                 self.send_encrypted(client_socket, json.dumps(welcome_msg))
                 
-                # Broadcast updated client list
                 self.broadcast_client_list()
                 
             else:
-                print(f"[E2E-SERVER] ❌ Falha na autenticação de {client_address}")
+                print(f"[E2E-SERVER] - Falha na autenticação de {client_address}")
                 self.remove_client(client_socket)
                 return
 
@@ -352,7 +348,7 @@ class E2EChatServer:
                             message_type = message_data.get("type", "")
                             
                             if message_type == "exit":
-                                print(f"👋 '{client_name}' desconectou")
+                                print(f"- '{client_name}' desconectou")
                                 self.remove_client(client_socket)
                                 break
                             elif E2EMessageWrapper.is_e2e_message(message_data):
@@ -362,10 +358,10 @@ class E2EChatServer:
                                 else:
                                     self.route_e2e_message(message_data, client_socket)
                             else:
-                                print(f"[E2E-SERVER] ⚠️  Tipo de mensagem desconhecido: {message_type}")
+                                print(f"[E2E-SERVER] -  Tipo de mensagem desconhecido: {message_type}")
                                 
                         except json.JSONDecodeError:
-                            print(f"[E2E-SERVER] ❌ Mensagem JSON inválida de '{client_name}'")
+                            print(f"[E2E-SERVER] - Mensagem JSON inválida de '{client_name}'")
                     else:
                         self.remove_client(client_socket)
                         break
@@ -374,12 +370,12 @@ class E2EChatServer:
                     self.remove_client(client_socket)
                     break
                 except Exception as e:
-                    print(f"[E2E-SERVER] ❌ Erro com cliente {client_address}: {e}")
+                    print(f"[E2E-SERVER] - Erro com cliente {client_address}: {e}")
                     self.remove_client(client_socket)
                     break
                     
         except Exception as e:
-            print(f"[E2E-SERVER] ❌ Falha ao lidar com cliente {client_address}: {e}")
+            print(f"[E2E-SERVER] - Falha ao lidar com cliente {client_address}: {e}")
             self.remove_client(client_socket)
 
     def remove_client(self, client_socket):
@@ -422,8 +418,8 @@ class E2EChatServer:
             server_socket.bind((self.host, self.port))
             server_socket.listen(5)
             
-            print(f"\n🚀 Servidor E2E rodando em {self.host}:{self.port}")
-            print(f"✅ Pronto para conexões!")
+            print(f"\n- Servidor E2E rodando em {self.host}:{self.port}")
+            print(f"- Pronto para conexões!")
             print("=" * 50)
             print("")
 
@@ -446,7 +442,7 @@ class E2EChatServer:
         except Exception as e:
             print(f"[ERROR] Erro inesperado: {e}")
         finally:
-            print(f"[E2E-SERVER] 🧹 Limpando conexões...")
+            print(f"[E2E-SERVER] Limpando conexões...")
             for client_socket in self.clients[:]:
                 self.remove_client(client_socket)
             

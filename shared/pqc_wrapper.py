@@ -150,7 +150,6 @@ class PQCWrapper:
         return ciphertext, shared_secret
     
     def decapsulate(self, secret_key, ciphertext):
-        """Decapsulate the shared secret using the secret key and ciphertext."""
         if not self.is_initialized:
             raise RuntimeError("PQC library not initialized")
         
@@ -186,13 +185,12 @@ class PQCWrapper:
         }
     
     def derive_aes_key(self, shared_secret):
-        """Derive a 32-byte AES key from the shared secret using SHA-256."""
-        print(f"[AES-DERIVE] 🔄 Derivando chave AES a partir do segredo compartilhado")
-        print(f"[AES-DERIVE] 📊 Segredo compartilhado (32 bytes): {shared_secret.hex()}")
+        print(f"[AES-DERIVE] - Derivando chave AES a partir do segredo compartilhado")
+        print(f"[AES-DERIVE] - Segredo compartilhado (32 bytes): {shared_secret.hex()}")
         
         aes_key = hashlib.sha256(shared_secret).digest()
         
-        print(f"[AES-DERIVE] ✅ Chave AES-256 derivada com SHA-256 (32 bytes): {aes_key.hex()}")
+        print(f"[AES-DERIVE] - Chave AES-256 derivada com SHA-256 (32 bytes): {aes_key.hex()}")
         
         return aes_key
     

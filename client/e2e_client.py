@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-E2E Chat Client - Cliente End-to-End Real
-Estabelece criptografia verdadeiramente ponta a ponta com outros clientes.
-O servidor atua apenas como roteador.
-"""
-
 import socket
 import threading
 import json
@@ -53,7 +45,7 @@ class E2EChatClient:
         self._initialize_client_keys()
         
         print("=" * 50)
-        print(f"🔐 Cliente E2E inicializado: '{client_name}'")
+        print(f"Cliente E2E inicializado: '{client_name}'")
         print("=" * 50)
     
     def _initialize_client_keys(self):
@@ -66,14 +58,14 @@ class E2EChatClient:
                 if self.key_manager.verify_keypair(public_key, secret_key):
                     self.public_key = public_key
                     self.secret_key = secret_key
-                    print(f"✅ Chaves ML-KEM carregadas")
+                    print(f"Chaves ML-KEM carregadas")
                 else:
                     self._generate_client_keys()
             else:
                 self._generate_client_keys()
                 
         except Exception as e:
-            print(f"[E2E-CLIENT] ❌ Erro ao inicializar chaves: {e}")
+            print(f"[E2E-CLIENT] Erro ao inicializar chaves: {e}")
             raise
     
     def _generate_client_keys(self):
@@ -84,12 +76,12 @@ class E2EChatClient:
             if self.key_manager.verify_keypair(public_key, secret_key):
                 self.public_key = public_key
                 self.secret_key = secret_key
-                print(f"[E2E-CLIENT] ✅ Novas chaves geradas para '{self.client_name}'")
+                print(f"[E2E-CLIENT] Novas chaves geradas para '{self.client_name}'")
             else:
                 raise RuntimeError("Generated keypair failed verification")
                 
         except Exception as e:
-            print(f"[E2E-CLIENT] ❌ Falha ao gerar chaves: {e}")
+            print(f"[E2E-CLIENT] Falha ao gerar chaves: {e}")
             raise
 
     def send_unencrypted(self, message):
@@ -171,7 +163,7 @@ class E2EChatClient:
         """Perform ML-KEM key exchange with server for authentication."""
         try:
             print("\n" + "=" * 40)
-            print(f"🔐 Conectando ao servidor...")
+            print(f"Conectando ao servidor...")
             print("=" * 40)
             
             # Receive server public key
@@ -187,7 +179,7 @@ class E2EChatClient:
                 self.server_public_key = base64.b64decode(server_data["public_key"])
                 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                print(f"[E2E-CLIENT] ❌ Erro ao analisar chave do servidor: {e}")
+                print(f"[E2E-CLIENT] Erro ao analisar chave do servidor: {e}")
                 return False
             
             # Generate shared secret and ciphertext
@@ -195,7 +187,7 @@ class E2EChatClient:
             if not shared_secret or not ciphertext:
                 return False
             
-            print(f"✅ ML-KEM estabelecido com servidor")
+            print(f"ML-KEM estabelecido com servidor")
             print("-" * 40)
             
             # Derive AES key for server communication
@@ -235,12 +227,12 @@ class E2EChatClient:
             
             self.send_encrypted(json.dumps(request))
             print("\n" + "=" * 45)
-            print(f"🔑 Iniciando sessão E2E com '{target_client}'...")
+            print(f"Iniciando sessão E2E com '{target_client}'...")
             print("=" * 45)
             return True
             
         except Exception as e:
-            print(f"[E2E-CLIENT] - Erro ao solicitar chave pública: {e}")
+            print(f"[E2E-CLIENT] - Erro ao solicitar chave publica: {e}")
             return False
 
     def establish_e2e_session(self, target_client, target_public_key):
@@ -272,7 +264,7 @@ class E2EChatClient:
             session_key = self.session_manager._get_session_key(self.client_name, target_client)
             self.session_manager.sessions[session_key] = session
             
-            print(f"✅ SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {target_client}")
+            print(f" - SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {target_client}")
             print("-" * 45)
             
             # Send key exchange to target client so they can create their session
@@ -323,7 +315,7 @@ class E2EChatClient:
                 
                 timestamp = datetime.now().strftime("%H:%M:%S")
                 print("\n" + "-" * 50)
-                print(f"[{timestamp}] 📤 {self.client_name} → {target_client}: {message}")
+                print(f"[{timestamp}] Mensagem: {self.client_name} → {target_client}: {message}")
                 print("-" * 50)
                 return True
             else:
@@ -376,7 +368,7 @@ class E2EChatClient:
                     session_key = self.session_manager._get_session_key(self.client_name, sender)
                     self.session_manager.sessions[session_key] = session
                     
-                    print(f"✅ SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {sender}")
+                    print(f" - SESSÃO E2E ESTABELECIDA: {self.client_name} ↔ {sender}")
                     print("-" * 45)
                 else:
                     print(f"[E2E-CLIENT] - Falha ao desencapsular chave de '{sender}'")
@@ -396,10 +388,10 @@ class E2EChatClient:
                 if decrypted_message:
                     timestamp = datetime.now().strftime("%H:%M:%S")
                     print("\n" + "-" * 50)
-                    print(f"[{timestamp}] 📥 {sender} → {self.client_name}: {decrypted_message}")
+                    print(f"[{timestamp}] Mensagem: {sender} → {self.client_name}: {decrypted_message}")
                     print("-" * 50)
                 else:
-                    print(f"❌ Falha ao descriptografar mensagem de '{sender}'")
+                    print(f" - Falha ao descriptografar mensagem de '{sender}'")
                     
             elif message_data.get("type") == "key_error":
                 print(f"[E2E-CLIENT] - {message_data.get('message', 'Erro de chave')}")
@@ -416,12 +408,12 @@ class E2EChatClient:
             message_type = message_data.get("type", "")
             
             if message_type == "server_message":
-                print(f"[SERVIDOR] 📢 {message_data.get('message', '')}")
+                print(f"[SERVIDOR] - {message_data.get('message', '')}")
                 
             elif message_type == "client_list":
                 self.online_clients = message_data.get("clients", [])
                 print("\n" + "=" * 30)
-                print(f"📋 Clientes online: {', '.join(self.online_clients)}")
+                print(f"- Clientes online: {', '.join(self.online_clients)}")
                 print("=" * 30)
                 
         except Exception as e:
@@ -454,19 +446,16 @@ class E2EChatClient:
                 break
 
     def connect(self, host='localhost', port=12346):
-        """Connect to the E2E chat server."""
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((host, port))
             self.connected = True
             
-            print(f"[E2E-CLIENT] 🔌 Conectado ao servidor {host}:{port}")
+            print(f"[E2E-CLIENT] - Conectado ao servidor {host}:{port}")
             
-            # Perform key exchange with server
             if self.perform_key_exchange():
                 self.running = True
                 
-                # Start message handling thread
                 receive_thread = threading.Thread(target=self.handle_incoming_messages)
                 receive_thread.daemon = True
                 receive_thread.start()
@@ -482,13 +471,11 @@ class E2EChatClient:
             return False
 
     def disconnect(self):
-        """Disconnect from the server."""
         self.running = False
         self.connected = False
         
         if self.socket:
             try:
-                # Send exit message
                 exit_msg = {"type": "exit"}
                 self.send_encrypted(json.dumps(exit_msg))
                 
@@ -500,7 +487,6 @@ class E2EChatClient:
         print(f"[E2E-CLIENT] - Desconectado do servidor")
 
     def start_chat(self):
-        """Start the interactive chat interface."""
         if not self.connected:
             print(f"[E2E-CLIENT] - Não conectado ao servidor")
             return
@@ -534,8 +520,8 @@ class E2EChatClient:
                         except Exception as e:
                             print(f"Erro: {e}")
                     else:
-                        print("💡 Para enviar mensagem: @cliente sua_mensagem")
-                        print("💡 Digite '/help' para mais comandos")
+                        print(" - Para enviar mensagem: @cliente sua_mensagem")
+                        print(" - Digite '/help' para mais comandos")
                         
         except KeyboardInterrupt:
             print(f"\n[E2E-CLIENT] - Chat interrompido")
@@ -585,7 +571,7 @@ class E2EChatClient:
             self.running = False
             
         else:
-            print(f"❌ Comando desconhecido: {command}")
+            print(f"Comando desconhecido: {command}")
 
 def main():
     """Main function to start the E2E client."""
